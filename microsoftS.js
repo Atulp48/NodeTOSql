@@ -15,7 +15,8 @@ const dbConfig = {
     enableArithAbort: true,
     instancename: process.env.INSTANCE_NAME,
   },
-  port: 1433,
+  // the port is optional there is no need to specify the port so  not uncomment the below line the code is working well without port
+  // port: 1433,
 };
 
 let jsonData = null;

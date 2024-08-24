@@ -26,7 +26,7 @@ const fetchDataAndConvertToJson = async () => {
     //     ORDER BY ${column} DESC
     //     LIMIT 20
     //   `);
-    // console.log(rows)
+    console.log(rows)
     jsonData = JSON.stringify(rows, null, 2);
     console.log("data comming");
     // console.log("JSON Data:", jsonData);
