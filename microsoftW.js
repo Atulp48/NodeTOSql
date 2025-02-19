@@ -8,57 +8,59 @@ app.use(cors());
 
 let config = {
   connectionString: `Driver=SQL Server;
-    Server=${process.env.HOST_NAME}\\${process.env.SERVER_NAME};
-    Database=${process.env.DATABASE_NAME};
+    Server=${process.env.WA_HOST_NAME}\\${process.env.WA_SERVER_NAME};
+    Database=${process.env.WA_DATABASE_NAME};
     Trusted_Connection=true;`,
 };
 
-let jsonData = null;
-
 const fetchDataAndConvertToJson = () => {
-  sql.connect(config, (err) => {
-    new sql.Request().query(
-      `SELECT TOP 20 * FROM ${process.env.TABLE_NAME} ORDER BY ${process.env.COLUMN_NAME} DESC`,
-      (err, result) => {
-        console.log("Database Connected");
-        if (err) {
-          console.log("SQL error but connection OK");
-        } else {
-          // console.log(result.recordset);
-          jsonData = JSON.stringify(result.recordset, null, 2);
-          // console.log("my json data ",jsonData);
-        }
+  return new Promise((resolve, reject) => {
+    sql.connect(config, (err) => {
+      if (err) {
+        console.error("Connection Failed:", err);
+        return reject(err);
       }
-    );
-  });
-
-  sql.on("error", (err) => {
-    console.log("Connection Failed");
-  });
-};
-
-const startAutoFetch = () => {
-  fetchDataAndConvertToJson();
-  // setInterval(fetchDataAndConvertToJson, 10000); // 10 seconds
-  setInterval(fetchDataAndConvertToJson, 1000 * 60 * 60 * 24);
-};
-
-app.get("/getdata", (req, res) => {
-  if (jsonData) {
-    res.status(200).json({
-      success: true,
-      message: "data fetches successfully",
-      data: JSON.parse(jsonData),
+      console.log("Database Connected");
+      const request = new sql.Request();
+      request.query(
+        `SELECT TOP 2 * FROM ${process.env.WA_TABLE_NAME} ORDER BY ${process.env.WA_COLUMN_NAME} DESC`,
+        (err, result) => {
+          sql.close();
+          if (err) {
+            console.error("SQL Error:", err);
+            return reject(err);
+          }
+          resolve(result.recordset);
+        }
+      );
     });
-  } else {
-    res
-      .status(404)
-      .json({ success: false, message: "Data is not yet available" });
-  }
+    sql.on("error", (err) => {
+      console.error("SQL Connection Error:", err);
+      reject(err);
+    });
+  });
+};
+
+
+fetchDataAndConvertToJson()
+  .then((data) => console.log("Fetched Data:", data))
+  .catch((err) => console.error("Error:", err));
+
+fetchDataAndConvertToJson().then((data) => console.log(data)).catch((err) => console.log(err))
+
+app.get("/getdata", async (req, res) => {
+  const jsonData = await fetchDataAndConvertToJson()
+  let val = Math.floor(Math.random() * 201);
+  res.status(200).json({
+    success: true,
+    message: "data fetches successfully",
+    data: {
+      maindata: JSON.parse(jsonData),
+      val: val,
+    },
+  });
 });
 
-app.listen(process.env.PORT || 9000, () => {
-  console.log(`Server is running on port ${process.env.PORT || 9000} `);
-  fetchDataAndConvertToJson();
-  // startAutoFetch()
+app.listen( process.env.WA_PORT|| 9000, () => {
+  console.log(`Server is running on port ${process.env.WA_PORT || 9000} `);
 });

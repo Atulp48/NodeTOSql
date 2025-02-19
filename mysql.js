@@ -7,54 +7,36 @@ const app = express();
 app.use(cors());
 
 const dbConfig = {
-  host: process.env.HOST_NAME,
-  user: process.env.USER_NAME,
-  password: process.env.PASSWORD,
-  database: process.env.DATABASE_NAME,
+    host: process.env.MYSQL_HOST_NAME,
+    user: process.env.MYSQL_USER_NAME,
+    password: process.env.MYSQL_PASSWORD,
+    database: process.env.MYSQL_DATABASE_NAME,
 };
 
-let jsonData = null;
-const table = process.env.TABLE_NAME;
-const column = process.env.COLUMN_NAME;
+const table = process.env.MYSQL_TABLE_NAME;
+
+
 const fetchDataAndConvertToJson = async () => {
-  try {
-    const connection = await mysql.createConnection(dbConfig);
-    // const [rows] = await connection.execute(`SELECT * FROM ${table}`);
-    const [rows] = await connection.execute(`SELECT * FROM ${table} LIMIT 2`);
-    // const [rows] = await connection.execute(`
-    //     SELECT * FROM ${table}
-    //     ORDER BY ${column} DESC
-    //     LIMIT 20
-    //   `);
-    console.log(rows)
-    jsonData = JSON.stringify(rows, null, 2);
-    console.log("data comming");
-    // console.log("JSON Data:", jsonData);
-    await connection.end();
-  } catch (error) {
-    console.error("Error fetching data:", error);
-  }
+    try {
+        const connection = await mysql.createConnection(dbConfig);
+        // const [rows] = await connection.execute(`SELECT * FROM ${table}`);
+        const [rows] = await connection.execute(`SELECT * FROM ${table} LIMIT 2`);
+        console.log(rows)
+        return rows
+        await connection.end();
+    } catch (error) {
+        console.error("Error fetching data:", error);
+    }
 };
-const startAutoFetch = () => {
-  fetchDataAndConvertToJson();
-  setInterval(fetchDataAndConvertToJson, 1000 * 10);
-  //   setInterval(fetchDataAndConvertToJson, 1000*60*60*24);
-};
-app.get("/getdata", (req, res) => {
-  if (jsonData) {
+
+app.get("/getdata", async (req, res) => {
+    const jsonData = await fetchDataAndConvertToJson()
     res.status(200).json({
-      success: true,
-      message: "data fetches successfully",
-      data: JSON.parse(jsonData),
+        success: true,
+        message: "data fetches successfully",
+        data: jsonData,
     });
-  } else {
-    res
-      .status(404)
-      .json({ success: false, message: "Data is not yet available." });
-  }
 });
-app.listen(process.env.PORT_NAME || 9000, () => {
-  console.log(`Server is running on port ${process.env.PORT_NAME || 9000}`);
-  //   startAutoFetch();
-  fetchDataAndConvertToJson();
+app.listen(process.env.MYSQL_PORT_NAME || 9000, () => {
+    console.log(`Server is running on port ${process.env.MYSQL_PORT_NAME || 9000}`);
 });
